@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Submit Feedback</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      width: 90%;
+      max-width: 400px;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .rating-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .rating-btn {
+      padding: 12px 0;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      cursor: pointer;
+      font-weight: bold;
+      background: #f7f7f7;
+      transition: all 0.2s ease;
+    }
+
+    .rating-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .rating-btn.selected {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    button.submit-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #667eea;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button.submit-btn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .success {
+      font-size: 18px;
+      color: #2ecc71;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    .error {
+      color: #e74c3c;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h2>How was your experience?</h2>
+
+    <div class="rating-grid" id="ratingGrid"></div>
+
+    <button class="submit-btn" onclick="submitFeedback()">Submit Feedback</button>
+
+    <div id="response"></div>
+  </div>
+
+  <script>
+
+    const BACKEND = "http://localhost:3000";
+
+    // 🔗 Working Google Maps review link (Taj Mahal for testing)
+    const GOOGLE_REVIEW_LINK = "https://search.google.com/local/writereview?placeid=ChIJlUsDSp2fyzsRGMArw82cSnE";
+
+    let selectedRating = null;
+
+    // Create rating buttons dynamically
+    const grid = document.getElementById("ratingGrid");
+    for (let i = 0; i <= 10; i++) {
+      const btn = document.createElement("div");
+      btn.innerText = i;
+      btn.className = "rating-btn";
+      btn.onclick = () => selectRating(i, btn);
+      grid.appendChild(btn);
+    }
+
+    function selectRating(value, element) {
+      selectedRating = value;
+
+      document.querySelectorAll(".rating-btn")
+        .forEach(btn => btn.classList.remove("selected"));
+
+      element.classList.add("selected");
+    }
+
+    function getToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("token");
+    }
+
+    async function submitFeedback() {
+
+      if (selectedRating === null) {
+        showError("Please select a rating");
+        return;
+      }
+
+      // 🚀 If rating > 7 → Redirect to Google Maps
+      if (selectedRating > 7) {
+        window.location.href = GOOGLE_REVIEW_LINK;
+        return;
+      }
+
+      // Otherwise submit to backend
+      const token = getToken();
+      const button = document.querySelector(".submit-btn");
+
+      button.disabled = true;
+      button.innerText = "Submitting...";
+
+      try {
+
+        const res = await fetch(`${BACKEND}/redeem`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, rating: selectedRating })
+        });
+
+        const data = await res.json();
+
+        if (data.status === "success") {
+          showSuccess("🎉 Thank you for your feedback!");
+        } else {
+          showError(data.message || "Something went wrong");
+        }
+
+      } catch (err) {
+        showError("Network error");
+      }
+
+      button.disabled = false;
+      button.innerText = "Submit Feedback";
+    }
+
+    function showSuccess(message) {
+      document.getElementById("response").innerHTML =
+        `<div class="success">${message}</div>`;
+    }
+
+    function showError(message) {
+      document.getElementById("response").innerHTML =
+        `<div class="error">${message}</div>`;
+    }
+
+  </script>
+
+</body>
+
+</html>

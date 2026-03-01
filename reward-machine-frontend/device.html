@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Give Feedback. Get Rewarded</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(circle at center, #1e3c72, #2a5298);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 500px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+
+    .start-btn {
+      padding: 18px 40px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      background: #ffffff;
+      color: #2a5298;
+      font-weight: bold;
+      transition: 0.3s ease;
+    }
+
+    .start-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .start-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .qr-wrapper {
+      margin-top: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      display: inline-block;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    #timer {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .expired {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #ffcccb;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🎁 Give Feedback. Get Rewarded</h1>
+
+  <button class="start-btn" onclick="startSession()">Tap to Get Reward</button>
+
+  <div id="qr-container"></div>
+  <div id="timer"></div>
+
+</div>
+
+<script>
+
+const BACKEND = "http://localhost:3000";
+
+let timerInterval;
+let sessionActive = false;
+
+async function startSession() {
+
+  if (sessionActive) return;
+
+  const button = document.querySelector(".start-btn");
+  button.disabled = true;
+  button.innerText = "Generating QR...";
+
+  try {
+
+    const deviceId = 1;
+    const res = await fetch(`${BACKEND}/tokens/generate/${deviceId}`);
+    const data = await res.json();
+
+    const token = data.token;
+    const redeemUrl = `http://localhost:5500/redeem.html?token=${token}`;
+
+    const qrContainer = document.getElementById("qr-container");
+    qrContainer.innerHTML = "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "qr-wrapper";
+
+    QRCode.toCanvas(document.createElement('canvas'), redeemUrl, function (err, canvas) {
+      wrapper.appendChild(canvas);
+      qrContainer.appendChild(wrapper);
+    });
+
+    sessionActive = true;
+    startCountdown(60);
+
+  } catch (err) {
+    alert("Failed to connect to server");
+  }
+
+  button.innerText = "Session Active";
+}
+
+function startCountdown(seconds) {
+
+  let remaining = seconds;
+
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+
+    document.getElementById("timer").innerText =
+      `Scan within ${remaining}s`;
+
+    remaining--;
+
+    if (remaining < 0) {
+      clearInterval(timerInterval);
+      endSession();
+    }
+
+  }, 1000);
+}
+
+function endSession() {
+
+  sessionActive = false;
+
+  document.getElementById("qr-container").innerHTML = "";
+  document.getElementById("timer").innerHTML =
+    `<div class="expired">Session expired. Tap to start again.</div>`;
+
+  const button = document.querySelector(".start-btn");
+  button.disabled = false;
+  button.innerText = "Tap to Get Reward";
+}
+
+</script>
+
+</body>
+</html>

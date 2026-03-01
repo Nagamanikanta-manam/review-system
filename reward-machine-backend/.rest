@@ -1,0 +1,21 @@
+### Create Device
+POST http://localhost:3000/device/create
+Content-Type: application/json
+
+{
+  "locationName": "Cafe Test"
+}
+
+###
+### Generate Token
+GET http://localhost:3000/tokens/generate/1
+
+###
+### Redeem
+POST http://localhost:3000/redeem
+Content-Type: application/json
+
+{
+  "token": "PASTE_TOKEN_HERE",
+  "rating": 9
+}
